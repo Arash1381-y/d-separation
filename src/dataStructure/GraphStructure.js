@@ -1,4 +1,5 @@
-import graph from "../Graph";
+import isPathActive from "./pathChecker";
+
 
 class NetNode {
     constructor(id) {
@@ -18,6 +19,16 @@ class Edge {
 class BayesianNet {
     constructor() {
         this.nodes = [];
+        this.evidence = [];
+    }
+
+    addEvidence(nodeId) {
+        this.evidence.push(nodeId);
+        return this;
+    }
+
+    getEvidence() {
+        return this.evidence;
     }
 
     addNode(nodeId) {
@@ -50,6 +61,35 @@ class BayesianNet {
     getEdge(fromNode, toNode) {
         return fromNode.toEdges.find(edge => edge.to === toNode);
     }
+
+    propagate() {
+        // return a list of activated nodes id
+        const active_nodes = [];
+        // propagate evidence
+        this.evidence.forEach(nodeId => {
+            const node = this.nodes.find(node => node.id === nodeId);
+            active_nodes.push(node.id);
+
+            // propagate to all nodes that have edge to this node
+            const frontier = [node];
+            while (frontier.length > 0) {
+                const currentNode = frontier.pop();
+                currentNode.fromEdges.forEach(edge => {
+                    const fromNode = edge.from;
+                    if (!active_nodes.includes(fromNode.id)) {
+                        active_nodes.push(fromNode.id);
+                        frontier.push(fromNode);
+                    }
+                });
+            }
+        })
+        return active_nodes;
+    }
+
+    removeEvidence(evidence) {
+        this.evidence = this.evidence.filter(nodeId => nodeId !== evidence);
+        return this;
+    }
 }
 
 
@@ -57,8 +97,18 @@ const createBaseNet = () => {
     return new BayesianNet();
 }
 
+const DSeparation = (graph, startNodeId, endNodeId) => {
+    const evidence = graph.getEvidence();
+    const activations = graph.propagate();
+    const paths = findAllPaths(graph, startNodeId, endNodeId, evidence, activations);
+    // check if there is a path that is active
+    const isDSeparated = paths.every(path => !path[1]);
 
-const findAllPaths = (graph, startNodeId, endNodeId) => {
+    // return a list of paths and a boolean value that indicate if the nodes are seprated or not
+    return [paths, isDSeparated];
+}
+
+const findAllPaths = (graph, startNodeId, endNodeId, evidence, activations) => {
     // preform DFS to find all paths
     const startNode = graph.nodes.find(node => node.id === startNodeId);
     const endNode = graph.nodes.find(node => node.id === endNodeId);
@@ -69,7 +119,14 @@ const findAllPaths = (graph, startNodeId, endNodeId) => {
         visited.add(node);
         path.push(node);
         if (node === endNode) {
-            paths.push(path.slice());
+            // check if path is active or not
+            if (isPathActive(path, evidence, activations)) {
+                // if path is active add a pair of path and true to paths
+                paths.push([path.slice(), true]);
+            } else {
+                // if path is not active add a pair of path and false to paths
+                paths.push([path.slice(), false]);
+            }
         } else {
             // ignore direction of edges
             const edges = [...node.fromEdges, ...node.toEdges];
@@ -87,4 +144,4 @@ const findAllPaths = (graph, startNodeId, endNodeId) => {
     return paths;
 }
 
-export {createBaseNet, BayesianNet, NetNode, Edge, findAllPaths};
+export {createBaseNet, BayesianNet, NetNode, Edge, findAllPaths, DSeparation};

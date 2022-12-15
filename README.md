@@ -1,2 +1,2 @@
 # D-separation
-website for checking conditional independency in Bayesian network
+website for checking conditional independence in Bayesian network

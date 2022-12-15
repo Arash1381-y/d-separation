@@ -11,13 +11,17 @@ import Visualizer from "./Graph";
 import {useState} from "react";
 import AddIcon from '@mui/icons-material/Add';
 import {useFormik} from "formik";
-import {createBaseNet, findAllPaths} from "./dataStructure/GraphStructure";
+import {createBaseNet, DSeparation} from "./dataStructure/GraphStructure";
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
+import CircleIcon from '@mui/icons-material/Circle';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import Button from "@mui/material/Button";
 
 const MainPage = () => {
 
     const [baseNet, setBaseNet] = useState(createBaseNet());
     const [paths, setPaths] = useState([]);
+    const [isSeparable, setIsSeparable] = useState(false);
 
     const [data, setData] = useState({
             nodes: [],
@@ -27,7 +31,7 @@ const MainPage = () => {
 
     const addNode = (node) => {
         setData({
-            nodes: [...data.nodes, {id: node, x: 700, y: 400}],
+            nodes: [...data.nodes, {id: node, x: Math.random() * 200 + 700, y: Math.random() * 200 + 400}],
             links: [...data.links],
         })
         setBaseNet((baseNet) => {
@@ -66,9 +70,9 @@ const MainPage = () => {
             const edge = baseNet.getEdge(sourceNode, targetNode);
             const reverseEdge = baseNet.getEdge(targetNode, sourceNode);
             if (edges.includes(edge)) {
-                return {...link, color: themeColor, strokeDasharray : 5, strokeWidth: 2.5};
+                return {...link, color: themeColor, strokeDasharray: 5, strokeWidth: 2.5};
             } else if (edges.includes(reverseEdge)) {
-                return {...link, color: themeColor, strokeDasharray : 5, strokeWidth: 2.5};
+                return {...link, color: themeColor, strokeDasharray: 5, strokeWidth: 2.5};
             } else {
                 return link;
             }
@@ -78,6 +82,47 @@ const MainPage = () => {
             nodes: data.nodes,
             links: newLinks
         })
+    }
+
+
+    const addOrRemoveEvidence = (evidence) => {
+        if (baseNet.getEvidence().includes(evidence)) {
+            setBaseNet((baseNet) => {
+                return baseNet.removeEvidence(evidence);
+            })
+
+            // change color of evidence node to default
+            const newNodes = data.nodes.map((node) => {
+                if (node.id === evidence) {
+                    return {...node, color: '#5b51ff'}
+                } else {
+                    return node;
+                }
+            })
+
+            setData({
+                nodes: newNodes,
+                links: data.links
+            })
+        } else {
+            setBaseNet((baseNet) => {
+                return baseNet.addEvidence(evidence);
+            })
+
+            // change color of evidence node to red
+            const newNodes = data.nodes.map((node) => {
+                if (node.id === evidence) {
+                    return {...node, color: 'black',}
+                } else {
+                    return node;
+                }
+            })
+
+            setData({
+                nodes: newNodes,
+                links: data.links
+            })
+        }
     }
 
     const addNodeForm = useFormik({
@@ -122,11 +167,69 @@ const MainPage = () => {
             if (!data.nodes.find(node => node.id === values.target)) {
                 errors.target = 'Target node does not exist';
             }
+            //check if link already exists
+            if (data.links.find(link => link.source === values.source && link.target === values.target)) {
+                errors.source = 'Link already exists';
+                errors.target = 'Link already exists';
+            }
+
             return errors;
         },
 
         onSubmit: (values) => {
             addLink(values.source, values.target);
+        }
+    });
+
+    const queryForm = useFormik({
+        initialValues: {
+            firstNode: '',
+            secondNode: '',
+        },
+
+        validate: (values) => {
+            const errors = {};
+            if (values.firstNode === '') {
+                errors.firstNode = 'Required';
+            }
+            if (values.secondNode === '') {
+                errors.secondNode = 'Required';
+            }
+            if (!data.nodes.find(node => node.id === values.firstNode)) {
+                errors.firstNode = 'First node does not exist';
+            }
+            if (!data.nodes.find(node => node.id === values.secondNode)) {
+                errors.secondNode = 'Second node does not exist';
+            }
+            return errors;
+        },
+
+        onSubmit: (values) => {
+            // preform D separation
+            const [paths, isSeparable] = DSeparation(baseNet, values.firstNode, values.secondNode);
+            setPaths(paths);
+            setIsSeparable(isSeparable);
+        }
+    });
+
+    const evidenceForm = useFormik({
+        initialValues: {
+            evidence: '',
+        },
+
+        validate: (values) => {
+            const errors = {};
+            if (values.evidence === '') {
+                errors.evidence = 'Required';
+            }
+            if (!data.nodes.find(node => node.id === values.evidence)) {
+                errors.evidence = 'Node does not exist';
+            }
+            return errors;
+        },
+
+        onSubmit: (values) => {
+            addOrRemoveEvidence(values.evidence);
         }
     });
 
@@ -185,15 +288,57 @@ const MainPage = () => {
                                     Add Edge
                                 </GraphButton>
                             </FieldForm>
-                            <GraphButton variant="contained" size={'small'} onClick={() => {
-                                //preform dfs on two random nodes
-                                const nodes = baseNet.getNodes();
-                                const randomNode1 = nodes[0].id;
-                                const randomNode2 = nodes[1].id;
-                                setPaths(findAllPaths(baseNet, randomNode1, randomNode2));
-                            }}>
-                                Find all paths
-                            </GraphButton>
+                        </form>
+
+                        <form onSubmit={evidenceForm.handleSubmit}>
+                            <FieldForm>
+                                <GraphTextField
+                                    size={'small'}
+                                    label="Evidence"
+                                    variant="outlined"
+                                    id="evidence"
+                                    name="evidence"
+                                    value={evidenceForm.values.evidence}
+                                    onChange={evidenceForm.handleChange}
+                                    error={evidenceForm.touched.evidence && Boolean(evidenceForm.errors.evidence)}
+                                    helperText={evidenceForm.touched.evidence && evidenceForm.errors.evidence}
+                                    fullWidth/>
+                                <GraphButton type="submit" variant="contained" size={'small'} endIcon={<AddIcon/>}>
+                                    Add Or Remove Evidence
+                                </GraphButton>
+                            </FieldForm>
+                        </form>
+
+                        <form onSubmit={queryForm.handleSubmit}>
+                            <FieldForm>
+                                <GraphTextField
+                                    size={'small'}
+                                    label="First Node"
+                                    variant="outlined"
+                                    id="firstNode"
+                                    name="firstNode"
+                                    value={queryForm.values.firstNode}
+                                    onChange={queryForm.handleChange}
+                                    error={queryForm.touched.firstNode && Boolean(queryForm.errors.firstNode)}
+                                    helperText={queryForm.touched.firstNode && queryForm.errors.firstNode}
+                                    fullWidth/>
+                                <GraphTextField
+                                    size={'small'}
+                                    label="Second Node"
+                                    variant="outlined"
+                                    id="secondNode"
+                                    name="secondNode"
+                                    value={queryForm.values.secondNode}
+                                    onChange={queryForm.handleChange}
+                                    error={queryForm.touched.secondNode && Boolean(queryForm.errors.secondNode)}
+                                    helperText={queryForm.touched.secondNode && queryForm.errors.secondNode}
+                                    fullWidth/>
+
+                                <GraphButton type="submit" variant="contained" size={'small'}>
+                                    Query
+                                </GraphButton>
+
+                            </FieldForm>
                         </form>
                     </GraphFormContainer>
 
@@ -205,10 +350,25 @@ const MainPage = () => {
                         }
                         {
                             paths.map((path, index) => {
-                                return <Container sx={{display: 'flex', marginBottom: '1rem'}} key={index}
+                                return <Container sx={
+                                    {
+                                        display: 'flex',
+                                        marginBottom: '1rem',
+                                        justifyContent: 'space-between',
+                                        paddingBottom: '0.5rem',
+                                        borderBottom: '1px solid #000',
+                                        // change mouse cursor to pointer when hovering over the path
+                                        '&:hover': {
+                                            cursor: 'pointer',
+                                        }
+                                    }
+                                }
+
+
+                                                  key={index}
                                                   onMouseEnter={
                                                       () => {
-                                                          colorLinks(path, baseNet);
+                                                          colorLinks(path[0], baseNet);
                                                       }
                                                   }
                                                   onMouseLeave={
@@ -216,25 +376,50 @@ const MainPage = () => {
                                                           setData({
                                                               nodes: data.nodes,
                                                               links: data.links.map((link) => {
-                                                                  return {...link, color: 'black', strokeDasharray : 0, strokeWidth: 1.5};
+                                                                  return {
+                                                                      ...link,
+                                                                      color: 'black',
+                                                                      strokeDasharray: 0,
+                                                                      strokeWidth: 1.5
+                                                                  };
                                                               })
                                                           })
                                                       }
                                                   }
                                 >
-                                    {/*for loop over each path*/}
-                                    {path.slice(0, path.length - 1).map((node, index) => {
-                                            return <div style={{display: 'flex'}} key={index}>
-                                                <div>
-                                                    {node.id}
-                                                </div>
-                                                <ArrowRightAltIcon color={'info'}/>
-                                            </div>
-                                        }
-                                    )}
-                                    <div>
-                                        {path[path.length - 1].id}
+                                    <div style={
+                                        {
+                                            display: 'flex',
+                                        }}
+                                    >
+                                        {/*for loop over each path*/}
+
+                                        {
+                                            path[0].slice(0, path[0].length - 1).map((node, index) => {
+                                                    return <div style={{display: 'flex'}} key={index}>
+                                                        <div>
+
+                                                            {node.id}
+                                                        </div>
+                                                        <ArrowRightAltIcon color={'info'}/>
+                                                    </div>
+                                                }
+                                            )}
+                                        <div>
+                                            {path[0][path[0].length - 1].id}
+                                        </div>
                                     </div>
+
+                                    <div>
+                                        <Typography variant={'body2'} color={'info'} fontWeight={'bolder'}>
+                                            {/*if path is active display green circle icon otherwise red icon*/}
+                                            {path[1] ? <CircleIcon style={{color: 'green'}}/> :
+                                                <CircleIcon style={{color: 'red'}}/>}
+
+                                        </Typography>
+                                    </div>
+
+
                                 </Container>
                             })
                         }
@@ -242,8 +427,20 @@ const MainPage = () => {
                 </Grid>
 
                 {/*graph visualizer*/}
-                <Grid item xs={12} sm={12} md={12} lg={17} xl={17}>
+                <Grid item xs={10} sm={10} md={10} lg={15} xl={15}>
                     <Visualizer data={data}/>
+                </Grid>
+
+                <Grid item xs={2} sm={2} md={2} lg={2} xl={2}>
+                    {/*Star Me in github*/}
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        href="www.google.com"
+                        startIcon={<GitHubIcon/>}
+                    >
+                        Star Me
+                    </Button>
                 </Grid>
             </Grid>
         </GridLines>
