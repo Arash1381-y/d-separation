@@ -439,8 +439,10 @@ const MainPage = () => {
                         href="www.google.com"
                         startIcon={<GitHubIcon/>}
                     >
-                        Star Me
+                        <a href="https://github.com/Arash1381-y/d-separation" style={{textDecoration:'none', color:'white'}}>
+                            Star Me</a>
                     </Button>
+
                 </Grid>
             </Grid>
         </GridLines>
