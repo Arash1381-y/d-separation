@@ -18,7 +18,7 @@ const GraphFormContainer = styled(Container)({
 
 const GraphButton = styled(Button)({
     background: themeColor,
-    minWidth: '200px',
+    minWidth: '40%',
     marginTop: '10px',
     marginBottom: '10px',
     marginLeft: '10px',
