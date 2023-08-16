@@ -154,6 +154,8 @@ const MainPage = () => {
             source: '',
             target: '',
         },
+        validateOnBlur: false,
+        validateOnChange: false,
         // check if source and target are already in the graph
         validate: (values) => {
             const errors = {};
@@ -188,7 +190,8 @@ const MainPage = () => {
             firstNode: '',
             secondNode: '',
         },
-
+        validateOnBlur: false,
+        validateOnChange: false,
         validate: (values) => {
             const errors = {};
             if (values.firstNode === '') {
@@ -215,9 +218,13 @@ const MainPage = () => {
     });
 
     const evidenceForm = useFormik({
+        
         initialValues: {
             evidence: '',
         },
+        
+        validateOnBlur: false,
+        validateOnChange: false,
 
         validate: (values) => {
             const errors = {};
