@@ -129,6 +129,8 @@ const MainPage = () => {
         initialValues: {
             node: '',
         },
+        validateOnChange: false,
+        validateOnBlur: false,
         // check if node is already in the graph
         validate: (values) => {
             const errors = {};
@@ -240,7 +242,7 @@ const MainPage = () => {
                 <Grid item xs={12} sm={12} md={12} lg={7} xl={7}>
                     <GraphFormContainer>
                         {/*add Node button*/}
-                        <form onSubmit={addNodeForm.handleSubmit}>
+                        <form onSubmit={addNodeForm.handleSubmit} style={{width: '100%'}}>
                             <FieldForm>
                                 <GraphTextField
                                     size={'small'}
@@ -260,7 +262,7 @@ const MainPage = () => {
                         </form>
 
                         {/*add edge button*/}
-                        <form onSubmit={addLinkForm.handleSubmit}>
+                        <form onSubmit={addLinkForm.handleSubmit} style={{width: '100%'}}>
                             <FieldForm>
                                 <GraphTextField
                                     size={'small'}
@@ -290,7 +292,7 @@ const MainPage = () => {
                             </FieldForm>
                         </form>
 
-                        <form onSubmit={evidenceForm.handleSubmit}>
+                        <form onSubmit={evidenceForm.handleSubmit} style={{width: '100%'}}>
                             <FieldForm>
                                 <GraphTextField
                                     size={'small'}
@@ -309,7 +311,7 @@ const MainPage = () => {
                             </FieldForm>
                         </form>
 
-                        <form onSubmit={queryForm.handleSubmit}>
+                        <form onSubmit={queryForm.handleSubmit} style={{width: '100%'}}>
                             <FieldForm>
                                 <GraphTextField
                                     size={'small'}
@@ -436,10 +438,10 @@ const MainPage = () => {
                     <Button
                         variant="contained"
                         color="primary"
-                        href="www.google.com"
                         startIcon={<GitHubIcon/>}
                     >
-                        <a href="https://github.com/Arash1381-y/d-separation" style={{textDecoration:'none', color:'white'}}>
+                        <a href="https://github.com/Arash1381-y/d-separation"
+                           style={{textDecoration: 'none', color: 'white'}}>
                             Star Me</a>
                     </Button>
 
